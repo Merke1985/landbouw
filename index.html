@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toets Landbouw en Voedselproductie</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); overflow: hidden; }
+        .header { background: linear-gradient(135deg, #2e7d32, #4caf50); color: white; padding: 30px; text-align: center; position: relative; }
+        .header h1 { font-size: 2em; margin-bottom: 10px; }
+        .teacher-toggle { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.2); border: 2px solid white; color: white; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 14px; }
+        .teacher-toggle:hover { background: white; color: #2e7d32; }
+        .mode-indicator { position: absolute; top: 20px; left: 20px; background: rgba(255,255,255,0.2); padding: 8px 16px; border-radius: 20px; font-size: 14px; }
+        .status-indicator { position: fixed; top: 10px; right: 10px; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: bold; z-index: 1000; }
+        .student-mode, .teacher-mode { display: none; }
+        .student-mode.active, .teacher-mode.active { display: block; }
+        .version-selector { padding: 20px; background: #f5f5f5; text-align: center; border-bottom: 1px solid #ddd; }
+        .version-btn { background: #4caf50; color: white; border: none; padding: 12px 30px; margin: 0 10px; border-radius: 25px; cursor: pointer; font-size: 16px; transition: all 0.3s; }
+        .version-btn:hover { background: #388e3c; transform: translateY(-2px); }
+        .version-btn.active { background: #2e7d32; }
+        .student-info { padding: 20px; background: #fafafa; border-bottom: 1px solid #ddd; }
+        .student-info input { width: 200px; padding: 10px; margin: 5px 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px; }
+        .quiz-container { padding: 30px; display: block; }
+        .question { margin-bottom: 25px; padding: 20px; background: #f9f9f9; border-radius: 10px; border-left: 4px solid #4caf50; }
+        .question h3 { color: #2e7d32; margin-bottom: 15px; font-size: 1.1em; }
+        .options { display: flex; flex-direction: column; gap: 10px; }
+        .option { display: flex; align-items: center; padding: 12px; background: white; border: 2px solid #e0e0e0; border-radius: 8px; cursor: pointer; transition: all 0.3s; }
+        .option:hover { border-color: #4caf50; background: #f1f8e9; }
+        .option input[type="radio"] { margin-right: 12px; transform: scale(1.2); }
+        .submit-btn { background: linear-gradient(135deg, #4caf50, #2e7d32); color: white; border: none; padding: 15px 40px; font-size: 18px; border-radius: 25px; cursor: pointer; display: block; margin: 30px auto; transition: all 0.3s; }
+        .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4); }
+        .result { display: none; padding: 30px; text-align: center; background: linear-gradient(135deg, #e8f5e8, #c8e6c9); border-radius: 15px; margin: 20px; }
+        .result.show { display: block; }
+        .score { font-size: 2.5em; font-weight: bold; color: #2e7d32; margin-bottom: 15px; }
+        .feedback { font-size: 1.2em; color: #1b5e20; }
+        .reset-btn { background: #ff9800; color: white; border: none; padding: 12px 25px; border-radius: 20px; cursor: pointer; margin-top: 20px; font-size: 16px; }
+        .reset-btn:hover { background: #f57c00; }
+        .teacher-panel { padding: 30px; }
+        .teacher-nav { display: flex; gap: 15px; margin-bottom: 30px; border-bottom: 2px solid #e0e0e0; padding-bottom: 15px; flex-wrap: wrap; }
+        .teacher-nav-btn { background: #e0e0e0; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 16px; transition: all 0.3s; }
+        .teacher-nav-btn.active { background: #4caf50; color: white; }
+        .teacher-section { display: none; }
+        .teacher-section.active { display: block; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: linear-gradient(135deg, #4caf50, #2e7d32); color: white; padding: 20px; border-radius: 10px; text-align: center; }
+        .stat-number { font-size: 2em; font-weight: bold; margin-bottom: 5px; }
+        .stat-label { font-size: 0.9em; opacity: 0.9; }
+        .results-table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .results-table th { background: #4caf50; color: white; padding: 15px; text-align: left; font-weight: bold; }
+        .results-table td { padding: 12px 15px; border-bottom: 1px solid #e0e0e0; }
+        .results-table tr:hover { background: #f5f5f5; }
+        .score-badge { padding: 4px 12px; border-radius: 15px; color: white; font-weight: bold; font-size: 0.9em; }
+        .score-excellent { background: #4caf50; }
+        .score-good { background: #ff9800; }
+        .score-poor { background: #f44336; }
+        .export-btn { background: #2196f3; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 16px; margin: 10px 5px; }
+        .export-btn:hover { background: #1976d2; }
+        .clear-btn { background: #f44336; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 16px; margin: 10px 5px; }
+        .clear-btn:hover { background: #d32f2f; }
+        @media (max-width: 768px) {
+            .container { margin: 10px; border-radius: 10px; }
+            .header { padding: 20px; }
+            .header h1 { font-size: 1.5em; }
+            .teacher-toggle, .mode-indicator { position: static; display: block; margin: 10px auto; }
+            .student-info input { width: 150px; margin: 5px; }
+            .stats-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+    <!-- Supabase client inline implementatie (geen CDN nodig) -->
+    <script>
+        // Eenvoudige Supabase client implementatie
+        window.createSupabaseClient = function(supabaseUrl, supabaseKey) {
+            const apiUrl = `${supabaseUrl}/rest/v1`;
+            const headers = {
+                'apikey': supabaseKey,
+                'Authorization': `Bearer ${supabaseKey}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation'
+            };
+
+            return {
+                from: function(table) {
+                    return {
+                        select: function(columns = '*') {
+                            const query = { columns, table };
+                            
+                            return {
+                                order: function(column, options = {}) {
+                                    query.order = options.ascending === false ? `${column}.desc` : `${column}.asc`;
+                                    return this;
+                                },
+                                limit: function(count) {
+                                    query.limit = count;
+                                    return this;
+                                },
+                                // Execute functie voor select queries
+                                then: function(resolve, reject) {
+                                    let url = `${apiUrl}/${query.table}?select=${query.columns}`;
+                                    if (query.order) url += `&order=${query.order}`;
+                                    if (query.limit) url += `&limit=${query.limit}`;
+                                    
+                                    return fetch(url, { method: 'GET', headers })
+                                        .then(response => {
+                                            if (!response.ok) {
+                                                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                                            }
+                                            return response.json();
+                                        })
+                                        .then(data => resolve({ data, error: null }))
+                                        .catch(error => resolve({ data: null, error }));
+                                }
+                            };
+                        },
+                        insert: function(records) {
+                            const query = { records, table };
+                            
+                            return {
+                                select: function() {
+                                    query.returnData = true;
+                                    return this;
+                                },
+                                // Execute functie voor insert queries
+                                then: function(resolve, reject) {
+                                    return fetch(`${apiUrl}/${query.table}`, {
+                                        method: 'POST',
+                                        headers,
+                                        body: JSON.stringify(Array.isArray(query.records) ? query.records : [query.records])
+                                    })
+                                    .then(response => {
+                                        if (!response.ok) {
+                                            return response.text().then(text => {
+                                                throw new Error(`HTTP ${response.status}: ${text}`);
+                                            });
+                                        }
+                                        return response.json();
+                                    })
+                                    .then(data => resolve({ data, error: null }))
+                                    .catch(error => resolve({ data: null, error }));
+                                }
+                            };
+                        },
+                        delete: function() {
+                            const query = { table };
+                            
+                            return {
+                                neq: function(column, value) {
+                                    query.filter = `${column}=neq.${value}`;
+                                    return {
+                                        // Execute functie voor delete queries
+                                        then: function(resolve, reject) {
+                                            return fetch(`${apiUrl}/${query.table}?${query.filter}`, {
+                                                method: 'DELETE',
+                                                headers
+                                            })
+                                            .then(response => {
+                                                if (!response.ok) {
+                                                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                                                }
+                                                return resolve({ data: null, error: null });
+                                            })
+                                            .catch(error => resolve({ data: null, error }));
+                                        }
+                                    };
+                                }
+                            };
+                        }
+                    };
+                }
+            };
+        };
+
+        // Maak de Supabase client direct beschikbaar
+        window.supabase = {
+            createClient: window.createSupabaseClient
+        };
+
+        console.log('✅ Supabase client inline geïmplementeerd (geen CDN nodig)');
+    </script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="mode-indicator" id="modeIndicator">👨‍🎓 Leerling Modus</div>
+            <h1>🌱 Toets Landbouw en Voedselproductie</h1>
+            <p>VMBO Basis/Kader - Mens en Maatschappij</p>
+            <button class="teacher-toggle" id="teacherToggle">👨‍🏫 Docent Paneel</button>
+        </div>
+        
+        <!-- Student Mode -->
+        <div class="student-mode active" id="studentMode">
+            <div class="version-selector">
+                <h3>Selecteer toetsversie:</h3>
+                <button class="version-btn active" data-version="A">Versie A</button>
+                <button class="version-btn" data-version="B">Versie B (Herkansing)</button>
+            </div>
+            
+            <div class="student-info">
+                <label>Naam: <input type="text" id="studentName" placeholder="Vul je naam in"></label>
+                <label>Klas: <input type="text" id="studentClass" placeholder="Bijv. 1A"></label>
+            </div>
+            
+            <div id="quizContainer" class="quiz-container"></div>
+            
+            <button class="submit-btn" id="submitBtn">Toets Inleveren</button>
+            
+            <div id="result" class="result">
+                <div class="score" id="scoreDisplay"></div>
+                <div class="feedback" id="feedbackText"></div>
+                <button class="reset-btn" id="resetBtn">Opnieuw Beginnen</button>
+            </div>
+        </div>
+        
+        <!-- Teacher Mode -->
+        <div class="teacher-mode" id="teacherMode">
+            <div class="teacher-panel">
+                <div class="teacher-nav">
+                    <button class="teacher-nav-btn active" data-section="overview">📊 Overzicht</button>
+                    <button class="teacher-nav-btn" data-section="results">📋 Resultaten</button>
+                    <button class="teacher-nav-btn" data-section="analysis">📈 Analyse</button>
+                    <button class="teacher-nav-btn" data-section="settings">⚙️ Beheer</button>
+                </div>
+                
+                <div id="overview" class="teacher-section active">
+                    <h2>📊 Toets Overzicht</h2>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-number" id="totalStudents">0</div>
+                            <div class="stat-label">Totaal Deelnemers</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="averageScore">0%</div>
+                            <div class="stat-label">Gemiddelde Score</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="passRate">0%</div>
+                            <div class="stat-label">Slagingspercentage</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="highestScore">0%</div>
+                            <div class="stat-label">Hoogste Score</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="results" class="teacher-section">
+                    <h2>📋 Individuele Resultaten</h2>
+                    <div style="margin-bottom: 20px;">
+                        <button class="export-btn" id="exportBtn">📄 Exporteer naar CSV</button>
+                        <button class="export-btn" id="printBtn">🖨️ Print Resultaten</button>
+                    </div>
+                    <div id="resultsTableContainer"></div>
+                </div>
+                
+                <div id="analysis" class="teacher-section">
+                    <h2>📈 Vraag Analyse</h2>
+                    <div id="analysisContainer"></div>
+                </div>
+                
+                <div id="settings" class="teacher-section">
+                    <h2>⚙️ Beheer & Instellingen</h2>
+                    <div style="margin: 20px 0;">
+                        <h3>Gegevens Beheer</h3>
+                        <button class="clear-btn" id="clearBtn">🗑️ Wis Alle Resultaten</button>
+                        <button class="export-btn" id="backupBtn">💾 Backup Gegevens</button>
+                    </div>
+                    <div style="margin: 20px 0;">
+                        <h3>Database Status</h3>
+                        <p id="dbStatus">Controleren...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Supabase configuratie
+        const SUPABASE_URL = 'https://gudggcvorzfqzzcaztmj.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd1ZGdnY3ZvcnpmcXp6Y2F6dG1qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE5NjY4MTUsImV4cCI6MjA2NzU0MjgxNX0.2iZG4wj9FCytwIgpFd8GCP0Ft8ORY8o9OSOYf-eJjwA';
+
+        // Globale variabelen
+        let supabaseClient = null;
+        let currentVersion = 'A';
+        let isTeacherMode = false;
+
+        // Toets vragen
+        const questions = {
+            A: [
+                { question: "Wat is het verschil tussen akkerbouw en veeteelt?", options: ["Akkerbouw is binnen, veeteelt is buiten", "Akkerbouw is het telen van gewassen, veeteelt is het houden van dieren", "Akkerbouw is biologisch, veeteelt is gangbaar", "Er is geen verschil"], correct: 1 },
+                { question: "Welke factor is het belangrijkst voor de groei van gewassen?", options: ["Alleen water", "Alleen zonlicht", "Water, zonlicht, voedingsstoffen en een goede bodem", "Alleen voedingsstoffen"], correct: 2 },
+                { question: "Wat is kenmerkend voor biologische landbouw?", options: ["Gebruik van chemische bestrijdingsmiddelen", "Geen gebruik van kunstmest en chemische bestrijdingsmiddelen", "Alleen machines gebruiken", "Gewassen in kassen telen"], correct: 1 },
+                { question: "Waarom wordt er mest gebruikt in de landbouw?", options: ["Om onkruid te bestrijden", "Om de bodem voedingsstoffen te geven", "Om insecten weg te houden", "Om het gewas sneller te laten groeien"], correct: 1 },
+                { question: "Wat is vruchtwisseling?", options: ["Het wisselen van zaden", "Het afwisselen van verschillende gewassen op hetzelfde veld", "Het oogsten van fruit", "Het verkopen van gewassen"], correct: 1 },
+                { question: "Welke dieren horen bij de veehouderij?", options: ["Koeien, varkens, kippen", "Honden, katten, konijnen", "Alleen koeien", "Wilde dieren"], correct: 0 },
+                { question: "Wat is het voordeel van kassenteelt?", options: ["Goedkoper dan buitenteelt", "Bescherming tegen weer en ziekten, langere groeiperiode", "Minder werk", "Betere smaak"], correct: 1 },
+                { question: "Welke Nederlandse regio is bekend om de bloementeelt?", options: ["Limburg", "Friesland", "Bollenstreek (Zuid-Holland)", "Groningen"], correct: 2 },
+                { question: "Wat is duurzame landbouw?", options: ["Landbouw die alleen winst maakt", "Landbouw die rekening houdt met milieu en toekomst", "Landbouw zonder machines", "Landbouw alleen voor eigen gebruik"], correct: 1 },
+                { question: "Welke stap komt het eerst in de voedselketen?", options: ["Transport naar de winkel", "Verwerking in de fabriek", "Productie op de boerderij", "Verkoop aan de consument"], correct: 2 }
+            ],
+            B: [
+                { question: "Wat houdt veeteelt in?", options: ["Het telen van groenten", "Het fokken en houden van dieren voor voedsel", "Het maken van gereedschap", "Het bouwen van stallen"], correct: 1 },
+                { question: "Welke voorwaarden hebben planten nodig om te groeien?", options: ["Alleen regenwater", "Zonlicht, water, voedingsstoffen en geschikte grond", "Alleen kunstmest", "Alleen zonneschijn"], correct: 1 },
+                { question: "Wat kenmerkt gangbare landbouw?", options: ["Geen gebruik van machines", "Gebruik van kunstmest en chemische bestrijdingsmiddelen", "Alleen handwerk", "Gewassen telen zonder water"], correct: 1 },
+                { question: "Waarvoor wordt kunstmest gebruikt?", options: ["Om dieren te voeren", "Om planten extra voedingsstoffen te geven", "Om water te besparen", "Om het weer te beïnvloeden"], correct: 1 },
+                { question: "Waarom passen boeren vruchtwisseling toe?", options: ["Om de bodem gezond te houden en ziekten te voorkomen", "Om minder te hoeven werken", "Om meer geld te verdienen", "Om dieren te houden"], correct: 0 },
+                { question: "Welke producten krijgen we van melkvee?", options: ["Alleen melk", "Melk, kaas, boter en vlees", "Alleen vlees", "Alleen eieren"], correct: 1 },
+                { question: "Waarom gebruiken telers kassen?", options: ["Om minder water te gebruiken", "Om gewassen het hele jaar door te kunnen telen", "Om dieren te houden", "Om minder personeel nodig te hebben"], correct: 1 },
+                { question: "Welk gewas is typisch voor de Nederlandse akkerbouw?", options: ["Rijst", "Aardappelen", "Bananen", "Koffie"], correct: 1 },
+                { question: "Wat betekent lokale voedselproductie?", options: ["Voedsel produceren ver van huis", "Voedsel produceren in de buurt van waar het geconsumeerd wordt", "Voedsel alleen in fabrieken maken", "Voedsel importeren uit andere landen"], correct: 1 },
+                { question: "Wat is de juiste volgorde in de voedselketen?", options: ["Winkel → boerderij → fabriek → consument", "Boerderij → fabriek → winkel → consument", "Fabriek → boerderij → consument → winkel", "Consument → winkel → boerderij → fabriek"], correct: 1 }
+            ]
+        };
+
+        // Initialisatie
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🚀 Applicatie wordt geladen...');
+            
+            // Initialiseer Supabase eerst
+            await initSupabase();
+            
+            // Dan de rest
+            initEventListeners();
+            generateQuiz();
+            showStatusIndicator();
+            
+            console.log('✅ Applicatie volledig geladen');
+        });
+
+        // Supabase initialiseren
+        async function initSupabase() {
+            try {
+                console.log('🔄 Initialiseren van inline Supabase client...');
+                
+                // Gebruik onze inline implementatie
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                
+                console.log('✅ Supabase client aangemaakt, testen verbinding...');
+                console.log('🔗 Test URL:', SUPABASE_URL + '/rest/v1/toets_resultaten?select=*&limit=1');
+                
+                // Test de verbinding met meer details
+                try {
+                    const testResult = await supabaseClient
+                        .from('toets_resultaten')
+                        .select('*')
+                        .limit(1);
+                    
+                    if (testResult.error) {
+                        console.log('⚠️ Database test fout:', testResult.error.message);
+                        
+                        // Specifieke foutafhandeling
+                        if (testResult.error.message.includes('Failed to fetch')) {
+                            updateDbStatus('🔴 Kan database niet bereiken (CORS/Network)');
+                            console.log('💡 CORS/Network probleem gedetecteerd');
+                            console.log('📋 Mogelijke oorzaken:');
+                            console.log('   - Supabase URL incorrect');
+                            console.log('   - RLS (Row Level Security) geblokkeerd');
+                            console.log('   - Netwerk/firewall blokkering');
+                            console.log('   - Supabase service offline');
+                            
+                            // Probeer een eenvoudiger test
+                            console.log('🔄 Proberen eenvoudige ping test...');
+                            try {
+                                const pingResponse = await fetch(SUPABASE_URL + '/rest/v1/', {
+                                    method: 'GET',
+                                    headers: {
+                                        'apikey': SUPABASE_ANON_KEY,
+                                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                                    }
+                                });
+                                console.log('🏓 Ping status:', pingResponse.status, pingResponse.statusText);
+                            } catch (pingError) {
+                                console.log('❌ Ping test gefaald:', pingError.message);
+                            }
+                            
+                            alert('⚠️ Database verbinding probleem!\n\n' +
+                                  'Mogelijke oorzaken:\n' +
+                                  '• Supabase project niet publiek toegankelijk\n' +
+                                  '• Row Level Security (RLS) blokkeert toegang\n' +
+                                  '• Netwerk/firewall probleem\n' +
+                                  '• Onjuiste URL of API key\n\n' +
+                                  'Controleer je Supabase instellingen.\n' +
+                                  'Resultaten worden nu lokaal opgeslagen.');
+                        } else if (testResult.error.message.includes('relation') || testResult.error.message.includes('does not exist')) {
+                            updateDbStatus('🔴 Tabel "toets_resultaten" bestaat niet');
+                            alert('⚠️ Database tabel ontbreekt!\n\nDe tabel "toets_resultaten" moet eerst aangemaakt worden in Supabase.\n\nResultaten worden nu lokaal opgeslagen.');
+                        } else if (testResult.error.message.includes('JWT') || testResult.error.message.includes('401')) {
+                            updateDbStatus('🔴 Ongeldige API key');
+                            alert('⚠️ API Key probleem!\n\nControleer of de Supabase URL en API key correct zijn.\n\nResultaten worden nu lokaal opgeslagen.');
+                        } else {
+                            updateDbStatus('🔴 Database fout: ' + testResult.error.message);
+                        }
+                        supabaseClient = null;
+                    } else {
+                        console.log('✅ Database verbinding succesvol! Gevonden records:', testResult.data ? testResult.data.length : 0);
+                        updateDbStatus('🟢 Database volledig operationeel');
+                    }
+                } catch (networkError) {
+                    console.error('❌ Netwerk fout bij database test:', networkError);
+                    updateDbStatus('🔴 Netwerk probleem');
+                    supabaseClient = null;
+                    alert('❌ Netwerk probleem!\n\nKan geen verbinding maken met Supabase.\n\nControleer je internetverbinding en Supabase instellingen.\n\nResultaten worden lokaal opgeslagen.');
+                }
+            } catch (error) {
+                console.error('❌ Supabase initialisatie fout:', error);
+                updateDbStatus('🔴 Initialisatie fout: ' + error.message);
+                supabaseClient = null;
+            }
+        }
+
+        // Status indicators
+        function showStatusIndicator() {
+            const indicator = document.createElement('div');
+            indicator.className = 'status-indicator';
+            
+            if (supabaseClient) {
+                indicator.textContent = '🟢 Database';
+                indicator.style.background = '#4caf50';
+                indicator.style.color = 'white';
+            } else {
+                indicator.textContent = '🟡 Lokaal';
+                indicator.style.background = '#ff9800';
+                indicator.style.color = 'white';
+            }
+            
+            document.body.appendChild(indicator);
+            setTimeout(() => indicator.remove(), 5000);
+        }
+
+        function updateDbStatus(status) {
+            const statusEl = document.getElementById('dbStatus');
+            if (statusEl) statusEl.textContent = status;
+        }
+
+        // Event listeners
+        function initEventListeners() {
+            // Teacher toggle
+            document.getElementById('teacherToggle').addEventListener('click', toggleTeacherMode);
+            
+            // Version buttons
+            document.querySelectorAll('.version-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    selectVersion(this.dataset.version);
+                });
+            });
+            
+            // Submit button
+            document.getElementById('submitBtn').addEventListener('click', submitQuiz);
+            
+            // Reset button
+            document.getElementById('resetBtn').addEventListener('click', resetQuiz);
+            
+            // Teacher navigation
+            document.querySelectorAll('.teacher-nav-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    showTeacherSection(this.dataset.section);
+                });
+            });
+            
+            // Teacher buttons
+            document.getElementById('exportBtn').addEventListener('click', exportResults);
+            document.getElementById('printBtn').addEventListener('click', printResults);
+            document.getElementById('clearBtn').addEventListener('click', clearAllResults);
+            document.getElementById('backupBtn').addEventListener('click', backupResults);
+        }
+
+        // Mode switching
+        function toggleTeacherMode() {
+            isTeacherMode = !isTeacherMode;
+            
+            const studentMode = document.getElementById('studentMode');
+            const teacherMode = document.getElementById('teacherMode');
+            const indicator = document.getElementById('modeIndicator');
+            const toggle = document.getElementById('teacherToggle');
+            
+            if (isTeacherMode) {
+                studentMode.classList.remove('active');
+                teacherMode.classList.add('active');
+                indicator.textContent = '👨‍🏫 Docent Modus';
+                toggle.textContent = '👨‍🎓 Leerling Modus';
+                loadTeacherData();
+            } else {
+                studentMode.classList.add('active');
+                teacherMode.classList.remove('active');
+                indicator.textContent = '👨‍🎓 Leerling Modus';
+                toggle.textContent = '👨‍🏫 Docent Paneel';
+            }
+        }
+
+        // Version selection
+        function selectVersion(version) {
+            currentVersion = version;
+            
+            document.querySelectorAll('.version-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-version="${version}"]`).classList.add('active');
+            
+            generateQuiz();
+            document.getElementById('result').classList.remove('show');
+        }
+
+        // Quiz generation
+        function generateQuiz() {
+            const container = document.getElementById('quizContainer');
+            container.innerHTML = '';
+            
+            const currentQuestions = questions[currentVersion];
+            
+            currentQuestions.forEach((q, index) => {
+                const questionDiv = document.createElement('div');
+                questionDiv.className = 'question';
+                
+                const questionTitle = document.createElement('h3');
+                questionTitle.textContent = `${index + 1}. ${q.question}`;
+                questionDiv.appendChild(questionTitle);
+                
+                const optionsDiv = document.createElement('div');
+                optionsDiv.className = 'options';
+                
+                q.options.forEach((option, optIndex) => {
+                    const optionDiv = document.createElement('div');
+                    optionDiv.className = 'option';
+                    
+                    const radio = document.createElement('input');
+                    radio.type = 'radio';
+                    radio.name = `q${index}`;
+                    radio.value = optIndex;
+                    radio.id = `q${index}_${optIndex}`;
+                    
+                    const label = document.createElement('label');
+                    label.textContent = `${String.fromCharCode(97 + optIndex)}) ${option}`;
+                    label.htmlFor = `q${index}_${optIndex}`;
+                    
+                    optionDiv.appendChild(radio);
+                    optionDiv.appendChild(label);
+                    optionsDiv.appendChild(optionDiv);
+                    
+                    optionDiv.addEventListener('click', () => radio.checked = true);
+                });
+                
+                questionDiv.appendChild(optionsDiv);
+                container.appendChild(questionDiv);
+            });
+        }
+
+        // Quiz submission
+        async function submitQuiz() {
+            const studentName = document.getElementById('studentName').value.trim();
+            const studentClass = document.getElementById('studentClass').value.trim();
+            
+            if (!studentName || !studentClass) {
+                alert('Vul eerst je naam en klas in!');
+                return;
+            }
+            
+            const currentQuestions = questions[currentVersion];
+            let score = 0;
+            let answers = [];
+            let answered = 0;
+            
+            currentQuestions.forEach((q, index) => {
+                const selected = document.querySelector(`input[name="q${index}"]:checked`);
+                if (selected) {
+                    answered++;
+                    const answer = parseInt(selected.value);
+                    answers.push(answer);
+                    if (answer === q.correct) score++;
+                } else {
+                    answers.push(-1);
+                }
+            });
+            
+            if (answered < currentQuestions.length) {
+                alert(`Je hebt nog niet alle vragen beantwoord! (${answered}/${currentQuestions.length})`);
+                return;
+            }
+            
+            const percentage = Math.round((score / currentQuestions.length) * 100);
+            
+            const result = {
+                name: studentName,
+                class: studentClass,
+                version: currentVersion,
+                score: score,
+                total: currentQuestions.length,
+                percentage: percentage,
+                answers: answers,
+                timestamp: new Date().toISOString(),
+                date: new Date().toLocaleDateString('nl-NL'),
+                time: new Date().toLocaleTimeString('nl-NL'),
+                subject: 'Landbouw en Voedselproductie'
+            };
+            
+            // Save result
+            await saveResult(result);
+            
+            // Show result
+            document.getElementById('scoreDisplay').textContent = `${score}/${currentQuestions.length} (${percentage}%)`;
+            
+            let feedback = '';
+            if (percentage >= 80) {
+                feedback = `🎉 Uitstekend werk, ${studentName}! Je beheerst dit onderwerp heel goed.`;
+            } else if (percentage >= 65) {
+                feedback = `👍 Goed gedaan, ${studentName}! Je hebt een voldoende gehaald.`;
+            } else {
+                feedback = `📚 Helaas ${studentName}, dit is nog onvoldoende. Bestudeer de stof nog eens goed.`;
+            }
+            
+            document.getElementById('feedbackText').textContent = feedback;
+            document.getElementById('result').classList.add('show');
+            document.getElementById('result').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Save result to database
+        async function saveResult(result) {
+            console.log('💾 Resultaat opslaan...', result.name);
+            
+            // Try Supabase first
+            if (supabaseClient) {
+                try {
+                    console.log('📤 Verzenden naar Supabase...');
+                    const saveResult = await supabaseClient
+                        .from('toets_resultaten')
+                        .insert([result]);
+                    
+                    if (saveResult.error) {
+                        console.error('❌ Supabase opslag fout:', saveResult.error);
+                        alert(`Database fout: ${saveResult.error.message}\nResultaat wordt lokaal opgeslagen.`);
+                        saveLocalResult(result);
+                    } else {
+                        console.log('✅ Succesvol opgeslagen in database');
+                        alert('✅ Toets succesvol verzonden naar de database!');
+                    }
+                } catch (error) {
+                    console.error('❌ Database verbinding fout:', error);
+                    alert(`Verbindingsfout: ${error.message}\nResultaat wordt lokaal opgeslagen.`);
+                    saveLocalResult(result);
+                }
+            } else {
+                console.log('📱 Geen database verbinding, opslaan lokaal');
+                saveLocalResult(result);
+                alert('📱 Toets opgeslagen op dit apparaat (geen database verbinding)');
+            }
+        }
+
+        // Fallback local storage
+        function saveLocalResult(result) {
+            const results = JSON.parse(localStorage.getItem('quizResults') || '[]');
+            results.push(result);
+            localStorage.setItem('quizResults', JSON.stringify(results));
+            console.log('💾 Opgeslagen lokaal');
+        }
+
+        // Get all results
+        async function getAllResults() {
+            if (supabaseClient) {
+                try {
+                    const result = await supabaseClient
+                        .from('toets_resultaten')
+                        .select('*')
+                        .order('timestamp', { ascending: false });
+                    
+                    if (!result.error && result.data) {
+                        return result.data;
+                    } else {
+                        console.error('Database ophaal fout:', result.error);
+                    }
+                } catch (error) {
+                    console.error('Database verbinding fout:', error);
+                }
+            }
+            
+            // Fallback to local storage
+            return JSON.parse(localStorage.getItem('quizResults') || '[]');
+        }
+
+        // Reset quiz
+        function resetQuiz() {
+            document.querySelectorAll('input[type="radio"]').forEach(radio => {
+                radio.checked = false;
+            });
+            document.getElementById('result').classList.remove('show');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Teacher section navigation
+        function showTeacherSection(section) {
+            document.querySelectorAll('.teacher-nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-section="${section}"]`).classList.add('active');
+            
+            document.querySelectorAll('.teacher-section').forEach(sec => {
+                sec.classList.remove('active');
+            });
+            document.getElementById(section).classList.add('active');
+            
+            // Load data for specific sections
+            if (section === 'overview') loadOverviewStats();
+            if (section === 'results') loadResultsTable();
+            if (section === 'analysis') loadAnalysis();
+        }
+
+        // Load teacher data
+        async function loadTeacherData() {
+            await loadOverviewStats();
+            await loadResultsTable();
+            await loadAnalysis();
+        }
+
+        // Load overview statistics
+        async function loadOverviewStats() {
+            const results = await getAllResults();
+            const totalStudents = results.length;
+            
+            if (totalStudents === 0) {
+                document.getElementById('totalStudents').textContent = '0';
+                document.getElementById('averageScore').textContent = '0%';
+                document.getElementById('passRate').textContent = '0%';
+                document.getElementById('highestScore').textContent = '0%';
+                return;
+            }
+            
+            const averageScore = Math.round(results.reduce((sum, r) => sum + r.percentage, 0) / totalStudents);
+            const passCount = results.filter(r => r.percentage >= 65).length;
+            const passRate = Math.round((passCount / totalStudents) * 100);
+            const highestScore = Math.max(...results.map(r => r.percentage));
+            
+            document.getElementById('totalStudents').textContent = totalStudents;
+            document.getElementById('averageScore').textContent = averageScore + '%';
+            document.getElementById('passRate').textContent = passRate + '%';
+            document.getElementById('highestScore').textContent = highestScore + '%';
+        }
+
+        // Load results table
+        async function loadResultsTable() {
+            const results = await getAllResults();
+            const container = document.getElementById('resultsTableContainer');
+            
+            if (results.length === 0) {
+                container.innerHTML = '<p>Nog geen resultaten beschikbaar.</p>';
+                return;
+            }
+            
+            const table = document.createElement('table');
+            table.className = 'results-table';
+            
+            // Header
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Naam</th>
+                        <th>Klas</th>
+                        <th>Versie</th>
+                        <th>Score</th>
+                        <th>Percentage</th>
+                        <th>Tijd</th>
+                        <th>Datum</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            `;
+            
+            const tbody = table.querySelector('tbody');
+            
+            results.forEach(result => {
+                const row = document.createElement('tr');
+                let scoreBadgeClass = 'score-poor';
+                if (result.percentage >= 80) scoreBadgeClass = 'score-excellent';
+                else if (result.percentage >= 65) scoreBadgeClass = 'score-good';
+                
+                row.innerHTML = `
+                    <td>${result.name}</td>
+                    <td>${result.class}</td>
+                    <td>Versie ${result.version}</td>
+                    <td>${result.score}/${result.total}</td>
+                    <td><span class="score-badge ${scoreBadgeClass}">${result.percentage}%</span></td>
+                    <td>${result.time}</td>
+                    <td>${result.date}</td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            container.innerHTML = '';
+            container.appendChild(table);
+        }
+
+        // Load analysis
+        async function loadAnalysis() {
+            const results = await getAllResults();
+            const container = document.getElementById('analysisContainer');
+            
+            if (results.length === 0) {
+                container.innerHTML = '<p>Nog geen resultaten beschikbaar voor analyse.</p>';
+                return;
+            }
+            
+            // Create answer matrix
+            const matrixHTML = `
+                <h3>📊 Antwoord Matrix</h3>
+                <table class="results-table" style="margin-bottom: 30px;">
+                    <thead>
+                        <tr>
+                            <th>Leerling</th>
+                            <th>Klas</th>
+                            <th>Versie</th>
+                            <th>V1</th><th>V2</th><th>V3</th><th>V4</th><th>V5</th>
+                            <th>V6</th><th>V7</th><th>V8</th><th>V9</th><th>V10</th>
+                            <th>Score</th>
+                        </tr>
+                    </thead>
+                    <tbody id="matrixBody"></tbody>
+                </table>
+                <div style="margin-bottom: 30px;">
+                    <h4>Legenda:</h4>
+                    <div style="display: flex; gap: 20px; align-items: center; margin-top: 10px;">
+                        <span style="background: #4caf50; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;">✓ Correct</span>
+                        <span style="background: #f44336; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;">✗ Onjuist</span>
+                        <span style="background: #9e9e9e; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;">- Niet beantwoord</span>
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = matrixHTML;
+            
+            const matrixBody = document.getElementById('matrixBody');
+            
+            results.forEach(result => {
+                const row = document.createElement('tr');
+                const currentQuestions = questions[result.version];
+                
+                let rowHTML = `
+                    <td><strong>${result.name}</strong></td>
+                    <td>${result.class}</td>
+                    <td>V${result.version}</td>
+                `;
+                
+                // Answer cells
+                for (let i = 0; i < 10; i++) {
+                    if (result.answers && result.answers[i] !== undefined && result.answers[i] !== -1) {
+                        const isCorrect = result.answers[i] === currentQuestions[i].correct;
+                        if (isCorrect) {
+                            rowHTML += `<td style="text-align: center; font-weight: bold; padding: 8px; background: #4caf50; color: white;">✓</td>`;
+                        } else {
+                            rowHTML += `<td style="text-align: center; font-weight: bold; padding: 8px; background: #f44336; color: white;">✗</td>`;
+                        }
+                    } else {
+                        rowHTML += `<td style="text-align: center; font-weight: bold; padding: 8px; background: #9e9e9e; color: white;">-</td>`;
+                    }
+                }
+                
+                // Total score
+                let scoreBadgeClass = 'score-poor';
+                if (result.percentage >= 80) scoreBadgeClass = 'score-excellent';
+                else if (result.percentage >= 65) scoreBadgeClass = 'score-good';
+                rowHTML += `<td style="text-align: center; font-weight: bold;"><span class="score-badge ${scoreBadgeClass}">${result.score}/10</span></td>`;
+                
+                row.innerHTML = rowHTML;
+                matrixBody.appendChild(row);
+            });
+        }
+
+        // Export functions
+        async function exportResults() {
+            const results = await getAllResults();
+            if (results.length === 0) {
+                alert('Geen resultaten om te exporteren!');
+                return;
+            }
+            
+            let csv = 'Naam,Klas,Versie,Score,Totaal,Percentage,Tijd,Datum\n';
+            results.forEach(result => {
+                csv += `"${result.name}","${result.class}","${result.version}",${result.score},${result.total},${result.percentage}%,"${result.time}","${result.date}"\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'toets_resultaten_landbouw.csv';
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        async function printResults() {
+            const results = await getAllResults();
+            if (results.length === 0) {
+                alert('Geen resultaten om te printen!');
+                return;
+            }
+            
+            let printContent = `
+                <h1>Toets Resultaten - Landbouw en Voedselproductie</h1>
+                <p>Datum: ${new Date().toLocaleDateString('nl-NL')}</p>
+                <table border="1" style="border-collapse: collapse; width: 100%;">
+                    <tr><th>Naam</th><th>Klas</th><th>Versie</th><th>Score</th><th>Percentage</th><th>Datum</th></tr>
+            `;
+            
+            results.forEach(result => {
+                printContent += `
+                    <tr>
+                        <td>${result.name}</td>
+                        <td>${result.class}</td>
+                        <td>${result.version}</td>
+                        <td>${result.score}/${result.total}</td>
+                        <td>${result.percentage}%</td>
+                        <td>${result.date}</td>
+                    </tr>
+                `;
+            });
+            
+            printContent += '</table>';
+            
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+            printWindow.print();
+        }
+
+        async function clearAllResults() {
+            if (!confirm('Weet je zeker dat je alle resultaten wilt wissen? Dit kan niet ongedaan worden gemaakt.')) {
+                return;
+            }
+            
+            // Clear from Supabase
+            if (supabaseClient) {
+                try {
+                    const result = await supabaseClient
+                        .from('toets_resultaten')
+                        .delete()
+                        .neq('id', 0);
+                    
+                    if (result.error) {
+                        console.error('Fout bij wissen database:', result.error);
+                    }
+                } catch (error) {
+                    console.error('Database wis fout:', error);
+                }
+            }
+            
+            // Clear local storage
+            localStorage.removeItem('quizResults');
+            
+            // Reload teacher data
+            await loadTeacherData();
+            alert('Alle resultaten zijn gewist.');
+        }
+
+        async function backupResults() {
+            const results = await getAllResults();
+            const data = {
+                results: results,
+                exportDate: new Date().toISOString(),
+                source: supabaseClient ? 'Supabase Database' : 'Lokale Opslag'
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'toets_backup_landbouw.json';
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
